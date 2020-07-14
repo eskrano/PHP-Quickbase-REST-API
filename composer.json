@@ -1,0 +1,17 @@
+{
+    "name": "eskrano/quickbaserestapi",
+    "authors": [
+        {
+            "name": "Alex Priadko",
+            "email": "mr.eskrano@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Eskrano\\QuickbaseRest\\": "src/QuickbaseRest"
+        }
+    },
+    "require": {
+        "guzzlehttp/guzzle": "^7.0"
+    }
+}
