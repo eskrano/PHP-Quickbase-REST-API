@@ -12,6 +12,7 @@ namespace Eskrano\QuickbaseRest;
 
 use Eskrano\QuickbaseRest\Interfaces\SectionInterface;
 use Eskrano\QuickbaseRest\Sections\Records;
+use Eskrano\QuickbaseRest\Sections\Tables;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\RequestOptions;
@@ -121,6 +122,15 @@ class QuickbaseREST
     public function records(): Records
     {
         return $this->getSection(Records::class);
+    }
+
+    /**
+     * @return Tables
+     * @throws \Exception
+     */
+    public function tables(): Tables
+    {
+        return $this->getSection(Tables::class);
     }
 
 
