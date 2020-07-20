@@ -8,7 +8,9 @@
 
 ### Installation
 
-Coming soon...
+``
+composer require eskrano/quickbaserestapi
+``
 
 ### Examples (file)
 ``

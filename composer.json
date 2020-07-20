@@ -1,5 +1,6 @@
 {
     "name": "eskrano/quickbaserestapi",
+    "license": ["MIT"],
     "authors": [
         {
             "name": "Alex Priadko",
