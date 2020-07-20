@@ -1,6 +1,7 @@
 {
     "name": "eskrano/quickbaserestapi",
     "license": ["MIT"],
+    "description": "Quickbase REST API Client (Quickbase.com)",
     "authors": [
         {
             "name": "Alex Priadko",
