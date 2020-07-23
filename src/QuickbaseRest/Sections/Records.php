@@ -136,7 +136,7 @@ class Records extends AbstractSection
             $body
         );
 
-        return json_encode(
+        return json_decode(
             $response->getBody()->getContents(),
             $this->client->convert_json_to_array
         );
