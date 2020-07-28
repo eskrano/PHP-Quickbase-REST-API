@@ -59,6 +59,11 @@ class QuickbaseREST
     public $convert_json_to_array = true;
 
     /**
+     * @var PerformanceMonitor
+     */
+    protected $performance;
+
+    /**
      * QuickbaseREST constructor.
      * @param string $realm
      */
@@ -89,6 +94,8 @@ class QuickbaseREST
                 $this->getSection($section);
             }
         }
+
+        $this->performance = new PerformanceMonitor();
     }
 
     /**
@@ -133,10 +140,27 @@ class QuickbaseREST
         return $this->getSection(Tables::class);
     }
 
+    /**
+     * @return PerformanceMonitor
+     */
+    public function getPerformanceMonitor(): PerformanceMonitor
+    {
+        return $this->performance;
+    }
 
+    /**
+     * @param string $method
+     * @param string $action
+     * @param array $body
+     * @param array $query_params
+     * @return ResponseInterface
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function query(string $method, string $action, array $body, array $query_params = []): ResponseInterface
     {
         try {
+            $_start = microtime(true);
+
             $response = $this->guzzle->request(
                 $method,
                 sprintf("%s?%s", $action, http_build_query($query_params)),
@@ -144,6 +168,14 @@ class QuickbaseREST
                     RequestOptions::BODY => json_encode($body),
                 ]
             );
+
+            $total_ms = microtime(true) - $_start;
+
+            $this->getPerformanceMonitor()
+                ->save([
+                    'query' => compact('method', 'action', 'body', 'query_params'),
+                    'ms' => $total_ms
+                ]);
 
             return $response;
 
