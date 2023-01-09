@@ -21,23 +21,24 @@ use Psr\Http\Message\ResponseInterface;
 class QuickbaseREST
 {
     /**
+     * @var bool
+     */
+    public $convert_json_to_array = true;
+    /**
      * cURL resource
      * @var
      */
     protected $guzzle;
-
     /**
      * @var string
      */
     protected $app_token;
-
     /**
      * Permament User token
      *
      * @var string
      */
     protected $user_token;
-
     /**
      * Your quickbase app subdomain
      *
@@ -46,22 +47,24 @@ class QuickbaseREST
      * @var string
      */
     protected $realm;
-
     /**
      * Loaded components
      * @var array
      */
     protected $loaded_sections = [];
-
-    /**
-     * @var bool
-     */
-    public $convert_json_to_array = true;
-
     /**
      * @var PerformanceMonitor
      */
     protected $performance;
+
+    /**
+     * @var array|bool[]
+     */
+    protected array $default_config = [
+        'wait_on_exceeded' => true,
+    ];
+
+    protected array $config = [];
 
     /**
      * QuickbaseREST constructor.
@@ -70,7 +73,8 @@ class QuickbaseREST
     public function __construct(
         string $realm,
         string $user_token,
-        bool $preload_sections = true
+        bool   $preload_sections = true,
+        array  $config = [],
     )
     {
         $this->realm = $realm;
@@ -96,6 +100,12 @@ class QuickbaseREST
         }
 
         $this->performance = new PerformanceMonitor();
+
+        /**
+         * Load config
+         */
+
+        $this->config = array_merge($this->default_config, $config);
     }
 
     /**
@@ -141,14 +151,6 @@ class QuickbaseREST
     }
 
     /**
-     * @return PerformanceMonitor
-     */
-    public function getPerformanceMonitor(): PerformanceMonitor
-    {
-        return $this->performance;
-    }
-
-    /**
      * @param string $method
      * @param string $action
      * @param array $body
@@ -159,29 +161,59 @@ class QuickbaseREST
     public function query(string $method, string $action, array $body, array $query_params = []): ResponseInterface
     {
         try {
-            $_start = microtime(true);
-
-            $response = $this->guzzle->request(
-                $method,
-                sprintf("%s?%s", $action, http_build_query($query_params)),
-                [
-                    RequestOptions::BODY => json_encode($body),
-                ]
-            );
-
-            $total_ms = microtime(true) - $_start;
-
-            $this->getPerformanceMonitor()
-                ->save([
-                    'query' => compact('method', 'action', 'body', 'query_params'),
-                    'ms' => $total_ms
-                ]);
+            $response = $this->runQuery($method, $action, $body, $query_params);
 
             return $response;
-
         } catch (RequestException $exception) {
-            throw $exception;
+
+            if ($this->config['wait_on_exceeded'] && $exception->getResponse()->getStatusCode() === 429) {
+
+                $header_key = 'x-ratelimit-reset';
+
+                if ($exception->getResponse()->hasHeader($header_key)) {
+                    $sleep_time = $exception->getResponse()->getHeader($header_key)[0] ?? null;
+
+
+                    if (null !== $sleep_time && intval($sleep_time) > 0) {
+                        sleep(intval($sleep_time));
+
+                        return $this->runQuery($method, $action, $body, $query_params);
+                    }
+                }
+            }
+
             return $exception->getResponse();
         }
+    }
+
+    protected function runQuery(string $method, string $action, array $body, array $query_params = []): ResponseInterface
+    {
+        $_start = microtime(true);
+
+        $response = $this->guzzle->request(
+            $method,
+            sprintf("%s?%s", $action, http_build_query($query_params)),
+            [
+                RequestOptions::BODY => json_encode($body),
+            ]
+        );
+
+        $total_ms = microtime(true) - $_start;
+
+        $this->getPerformanceMonitor()
+            ->save([
+                'query' => compact('method', 'action', 'body', 'query_params'),
+                'ms' => $total_ms
+            ]);
+
+        return $response;
+    }
+
+    /**
+     * @return PerformanceMonitor
+     */
+    public function getPerformanceMonitor(): PerformanceMonitor
+    {
+        return $this->performance;
     }
 }
